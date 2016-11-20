@@ -6,10 +6,17 @@ using SpecExpress.MessageStore;
 
 namespace SpecExpress
 {
+    using SpecExpress.Ioc;
+
     public class ValidationCatalogConfiguration
     {
         public  IDictionary<string, IMessageStore> MessageStores { private set; get;}
 
+        private readonly IDependencyContainer _defaultDependencyContainer = new DependencyContainer();
+
+        private IDependencyContainer _dependencyContainer;
+
+        private NoSpecificationFoundBehavior _noSpecificationFoundBehavior = NoSpecificationFoundBehavior.RaiseExceptionIfNoSpecificationsForTypeFound | NoSpecificationFoundBehavior.RaiseExceptionIfNoSpecificationsFound;
 
         public bool ValidateObjectGraph { get; set; }
 
@@ -17,7 +24,7 @@ namespace SpecExpress
         {
             if (String.IsNullOrEmpty(key))
             {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
 
             if (MessageStores == null)
@@ -27,7 +34,30 @@ namespace SpecExpress
             MessageStores.Add(key, store);
         }
 
+        public NoSpecificationFoundBehavior NoSpecificationFoundBehavior
+        {
+            get
+            {
+                return this._noSpecificationFoundBehavior;
+            }
+            set
+            {
+                this._noSpecificationFoundBehavior = value;
+            }
+        }
+
         public IMessageStore DefaultMessageStore { get; set; }
-        
+
+        public IDependencyContainer DependencyContainer
+        {
+            get
+            {
+                return this._dependencyContainer ?? this._defaultDependencyContainer;
+            }
+            set
+            {
+                this._dependencyContainer = value;
+            }
+        }
     }
 }

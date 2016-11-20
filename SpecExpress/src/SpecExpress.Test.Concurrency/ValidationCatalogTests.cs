@@ -27,7 +27,6 @@ namespace SpecExpress.Test.Concurrency
         }
 
         [TestMethod]
-        [HostType("Chess")]
         public void ScanConcurrently()
         {
             var childThread = new Thread(() =>
@@ -45,11 +44,10 @@ namespace SpecExpress.Test.Concurrency
 
             int specCount = ValidationCatalog.SpecificationContainer.GetAllSpecifications().Count;
 
-            Assert.AreEqual(22, specCount);
+            Assert.AreEqual(34, specCount);
         }
 
         [TestMethod]
-        [HostType("Chess")]
         public void ScanAndEnumerateSpecificationsConcurrently()
         {
             var childThread = new Thread(() =>
@@ -73,7 +71,6 @@ namespace SpecExpress.Test.Concurrency
 
 
         [TestMethod]
-        [HostType("Chess")]
         public void ValidateConcurrently()
         {
             ValidationCatalog.AddSpecification<Customer>(s => s.Check(c => c.Name).Required().MaxLength(50) );

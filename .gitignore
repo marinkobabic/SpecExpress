@@ -33,3 +33,5 @@ Examples*/
 *.testrunconfig
 publish.xml
 TestResults
+/SpecExpress/src/packages
+/SpecExpress/src/.vs/config

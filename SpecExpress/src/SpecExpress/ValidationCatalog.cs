@@ -28,10 +28,10 @@ namespace SpecExpress
             return ValidationCatalog.Validate(instance, context.SpecificationContainer, specificationBase);
         }
 
-        public static ValidationNotification Validate<TSpec>(object instance) where TSpec : SpecificationBase, new()
+        public static ValidationNotification Validate<TSpec>(object instance) where TSpec : SpecificationBase
         {
             var context = new TContext();
-            var spec = context.SpecificationContainer.TryGetSpecification<TSpec>() ?? new TSpec() as SpecificationBase;
+            var spec = context.SpecificationContainer.TryGetSpecification<TSpec>() ?? context.DependencyContainer.Resolve<TSpec>() as SpecificationBase;
             return ValidationCatalog.Validate(instance, context.SpecificationContainer, spec);
         }
 
@@ -73,7 +73,6 @@ namespace SpecExpress
 
 
         #endregion
-
     }
 
     public static class ValidationCatalog
@@ -108,7 +107,7 @@ namespace SpecExpress
         }
 
 
-        public static void AddSpecification<TSpec>() where TSpec : SpecificationBase, new()
+        public static void AddSpecification<TSpec>() where TSpec : SpecificationBase
         {
             lock (_syncLock)
             {
@@ -124,13 +123,13 @@ namespace SpecExpress
         {
             lock(_syncLock)
             {
-                var specificationRegistry = new SpecificationScanner();
+                var specificationRegistry = Configuration.DependencyContainer.Resolve<SpecificationScanner>();
                 configuration(specificationRegistry);
                 SpecificationContainer.Add(specificationRegistry.FoundSpecifications);
 
-                if (!ValidationCatalog.SpecificationContainer.GetAllSpecifications().Any())
+                if (Configuration.NoSpecificationFoundBehavior.HasFlag(NoSpecificationFoundBehavior.RaiseExceptionIfNoSpecificationsFound) && !SpecificationContainer.GetAllSpecifications().Any())
                 {
-                    throw new SpecExpressConfigurationException("No specifications are registered with ValidationCatalog. Check if Scan has been run.");
+                    throw new SpecExpressNoSpecificationsFoundException();
                 }  
             }
         }
@@ -243,7 +242,7 @@ namespace SpecExpress
                     {
                         //Unable to find specification, so call GetSpecification to generate an error message
                         SpecificationContainer.GetSpecification(instance.GetType());
-                        return null;
+                        return new ValidationNotification();
                     }
                 }
             }
@@ -275,15 +274,21 @@ namespace SpecExpress
             return Validate(instance, null, null);
         }
 
+        public static ValidationNotification Validate(object instance, ValidationContext validationContext)
+        {
+            if (validationContext == null) throw new ArgumentNullException(nameof(validationContext));
+            return ValidationCatalog.Validate(instance, validationContext.SpecificationContainer, null);
+        }
+
         public static ValidationNotification Validate(object instance, SpecificationBase specificationBase)
         {
             return Validate(instance, null, specificationBase);
         }
 
-        public static ValidationNotification Validate<TSpec>(object instance) where TSpec : SpecificationBase, new()
+        public static ValidationNotification Validate<TSpec>(object instance) where TSpec : SpecificationBase
         {
             var spec = SpecificationContainer.GetAllSpecifications()
-                .FirstOrDefault(s => s.GetType() == typeof(TSpec)) ?? new TSpec() as SpecificationBase;
+                .FirstOrDefault(s => s.GetType() == typeof(TSpec)) ?? Configuration.DependencyContainer.Resolve<TSpec>();
 
             return Validate(instance, SpecificationContainer, spec);
         }
@@ -297,6 +302,11 @@ namespace SpecExpress
             if (enumerator.MoveNext())
             {
                 var specification = specificationContainer.GetSpecification(enumerator.Current.GetType());
+                if (specification == null)
+                {
+                    return new ValidationNotification();
+                }
+
                 return ValidateCollection((IEnumerable)instance, specification, specificationContainer);
             }
             else
@@ -368,7 +378,7 @@ namespace SpecExpress
 
             if (!validators.Any())
             {
-                throw new ArgumentException(string.Format("There are no validation rules defined for {0}.{1}.", instance.GetType().FullName, propertyName));
+                throw new ArgumentException(String.Format("There are no validation rules defined for {0}.{1}.", instance.GetType().FullName, propertyName));
             }
 
             var notification = new ValidationNotification();
@@ -382,7 +392,6 @@ namespace SpecExpress
         }
 
         #endregion
-
     }
 
 }

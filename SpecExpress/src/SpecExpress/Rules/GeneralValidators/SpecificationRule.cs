@@ -11,7 +11,7 @@ namespace SpecExpress.Rules.GeneralValidators
         public override bool Validate(RuleValidatorContext<T, TProperty> context, SpecificationContainer specificationContainer, ValidationNotification notification)
         {
             SpecificationBase = specificationContainer.TryGetSpecification<TSpecification>() as Validates<TProperty> ??
-                     new TSpecification();
+                     specificationContainer.DependencyContainer.Resolve<TSpecification>();
 
             return base.Validate(context, specificationContainer, notification);
         }
@@ -51,6 +51,11 @@ namespace SpecExpress.Rules.GeneralValidators
             {
                 //Specification explicity defined by DSL .Specification<SomeSpecification>()
                 specificationBase = SpecificationBase;
+            }
+
+            if (specificationBase == null)
+            {
+                return true;
             }
 
             var innerNotification = new ValidationNotification();
