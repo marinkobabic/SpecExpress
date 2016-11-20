@@ -8,13 +8,15 @@ using System.Reflection;
 
 namespace SpecExpress
 {
+    using System.Collections.ObjectModel;
+
     public class SpecificationScanner
     {
         private readonly List<Type> _specifications = new List<Type>();
 
-        internal IList<Type> FoundSpecifications
+        public ReadOnlyCollection<Type> FoundSpecifications
         {
-            get { return _specifications; }
+            get { return _specifications.AsReadOnly(); }
         }
         
         public void TheCallingAssembly()

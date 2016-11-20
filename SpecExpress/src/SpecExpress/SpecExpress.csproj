@@ -76,8 +76,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CustomRuleEvaluationException.cs" />
+    <Compile Include="Ioc\DependencyContainer.cs" />
+    <Compile Include="Ioc\IDependencyContainer.cs" />
+    <Compile Include="NoSpecificationFoundBehavior.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rules\RuleParameter.cs" />
+    <Compile Include="SpecExpressMultipleSpecificationsFoundException.cs" />
+    <Compile Include="SpecExpressNoSpecificationsFoundException.cs" />
+    <Compile Include="SpecExpressNoSpecificationFoundForTypeException.cs" />
     <Compile Include="Specification.cs" />
     <Compile Include="CompiledFunctionExpression.cs" />
     <Compile Include="DSL\ActionJoinBuilder.cs" />

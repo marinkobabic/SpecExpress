@@ -6,9 +6,25 @@ using SpecExpress.Util;
 
 namespace SpecExpress
 {
+    using SpecExpress.Ioc;
+
     public class SpecificationContainer
     {
         private List<SpecificationBase> _registry = new List<SpecificationBase>();
+
+        private IDependencyContainer dependencyContainer;
+
+        internal IDependencyContainer DependencyContainer
+        {
+            get
+            {
+                return this.dependencyContainer ?? ValidationCatalog.Configuration.DependencyContainer;
+            }
+            set
+            {
+                this.dependencyContainer = value;
+            }
+        }
 
         public void Add<TEntity>(Validates<TEntity> expression)
         {
@@ -23,9 +39,9 @@ namespace SpecExpress
             }
         }
 
-        public void Add<TSpec>() where TSpec : SpecificationBase, new()
+        public void Add<TSpec>() where TSpec : SpecificationBase
         {
-            _registry.Add(new TSpec());
+            _registry.Add(this.DependencyContainer.Resolve<TSpec>());
         }
 
         public void Add(IEnumerable<SpecificationBase> specs)
@@ -41,12 +57,12 @@ namespace SpecExpress
             int counter = 0;
             int max = 10;
 
-            var delayedSpecs = createAndRegisterSpecificationsWithRegistryIterator(specs, counter, max);
+            var delayedSpecs = this.CreateAndRegisterSpecificationsWithRegistryIterator(specs, counter, max);
 
             while (delayedSpecs.Any())
             {
                 counter++;
-                delayedSpecs = createAndRegisterSpecificationsWithRegistryIterator(specs, counter, max);
+                delayedSpecs = this.CreateAndRegisterSpecificationsWithRegistryIterator(specs, counter, max);
             }
 
         }
@@ -93,13 +109,13 @@ namespace SpecExpress
                 //No default specs defined
                 if (!defaultSpecs.Any())
                 {
-                    throw new SpecExpressConfigurationException(string.Format("Multiple Specifications found and none are defined as default for {0}.", type.FullName));
+                    throw new SpecExpressMultipleSpecificationsFoundException(type);
                 }
 
                 //Multiple specs defined as Default
                 if (defaultSpecs.Count() > 1)
                 {
-                    throw new SpecExpressConfigurationException(string.Format("Multiple Specifications found and none are defined as default for {0}.", type.FullName));
+                    throw new SpecExpressMultipleSpecificationsFoundException(type);
                 }
 
                 return defaultSpecs.First();
@@ -113,9 +129,9 @@ namespace SpecExpress
         {
             var spec = TryGetSpecification(type);
 
-            if (spec == null)
+            if (spec == null && ValidationCatalog.Configuration.NoSpecificationFoundBehavior.HasFlag(NoSpecificationFoundBehavior.RaiseExceptionIfNoSpecificationsForTypeFound))
             {
-                throw new SpecExpressConfigurationException("No Specification for type " + type + " was found.");
+                throw new SpecExpressNoSpecificationFoundForTypeException(type);
             }
 
             return spec;
@@ -139,7 +155,7 @@ namespace SpecExpress
 
         #endregion
 
-        private List<Type> createAndRegisterSpecificationsWithRegistryIterator(IEnumerable<Type> specs, int counter, int max)
+        private List<Type> CreateAndRegisterSpecificationsWithRegistryIterator(IEnumerable<Type> specs, int counter, int max)
         {
             //TODO: This can result in a stackoverflow if a ForEachSpecification<Type> never finds a default spec for Type
 
@@ -154,7 +170,7 @@ namespace SpecExpress
                 {
                     try
                     {
-                        var s = Activator.CreateInstance(spec) as SpecificationBase;
+                        var s = this.DependencyContainer.Resolve(spec) as SpecificationBase;
 
                         Add(s);
                     }
@@ -163,7 +179,7 @@ namespace SpecExpress
                         if (counter > max)
                         {
                             throw new SpecExpressConfigurationException(
-                                string.Format("Exception thrown while trying to register {0}.", spec.FullName), te);
+                                $"Exception thrown while trying to register {spec.FullName}.", te);
                         }
                         else
                         {
@@ -176,7 +192,7 @@ namespace SpecExpress
                     catch (Exception err)
                     {
                         throw new SpecExpressConfigurationException(
-                          string.Format("Exception thrown while trying to register {0}.", spec.FullName), err);
+                            $"Exception thrown while trying to register {spec.FullName}.", err);
                     }
                 }
             });

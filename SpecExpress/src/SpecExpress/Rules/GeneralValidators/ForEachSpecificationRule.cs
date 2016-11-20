@@ -28,7 +28,7 @@ namespace SpecExpress.Rules.GeneralValidators
         {
             //Resolve the Specification
             Specification = specificationContainer.TryGetSpecification<TSpecification>() as Validates<TCollectionType> ??
-                       new TSpecification();
+                       specificationContainer.DependencyContainer.Resolve<TSpecification>();
 
             return base.Validate(context, specificationContainer, notification);
         }
@@ -191,6 +191,10 @@ namespace SpecExpress.Rules.GeneralValidators
                 Type objectType = item.GetType();
 
                 var specification = specificationContainer.GetSpecification(objectType);
+                if (specification == null)
+                {
+                    continue;
+                }
 
                 if (!specification.Validate(item, specificationContainer, innerNotfication))
                 {
